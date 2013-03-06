@@ -1,0 +1,35 @@
+#!/bin/sh
+
+CURRENT=`./current`
+LATEST=`ls -vr *.sql |egrep -o "^[0-9]+" |head -n1`
+
+echo current is $CURRENT
+echo latest is $LATEST
+
+[[ $CURRENT -gt $LATEST ]] && {
+    echo That seems to be a problem.
+    exit 1
+}
+
+[[ $CURRENT -eq $LATEST ]] && exit 0
+
+
+
+#SCRIPT_SET="-q"
+SCRIPT_SET=""
+
+for (( I = $CURRENT + 1 ; I <= $LATEST ; I++ )); do
+    SCRIPT=`ls $I-*.sql |head -n1`
+    echo "Adding '$SCRIPT'"
+    SCRIPT_SET="$SCRIPT_SET $SCRIPT"
+done
+
+echo "Applying upgrades..."
+echo $SCRIPT_SET
+for S in $SCRIPT_SET ; do
+    psql -v ON_ERROR_STOP=TRUE -f $S || {
+	echo FAIL
+	exit 1
+    }
+done
+echo OK
